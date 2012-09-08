@@ -9,7 +9,7 @@
  * All paths should be absolute.
  *
  * @author Dan Hlavenka
- * @version 2012-09-06 20:02 CST
+ * @version 2012-09-07 22:45 CST
  *
  */
 
@@ -57,7 +57,7 @@ case "$1" in
 	join)
 		if [ "`mc status`" = "Running" ]; then
 			if [ $bg_app = "screen" ]; then
-				screen -r mc
+				screen -dr mc
 			else
 				attachtty $base_dir/mc
 			fi
