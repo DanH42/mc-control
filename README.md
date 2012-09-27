@@ -61,6 +61,8 @@ Commands
     - Runs the Minecraft server in the foreground console window. Mostly used internally, but also useful for debugging Java errors.
 - `mc watch`
     - Monitors the console output without attaching. Uses `tail --follow`. Plain old ^C will get you out.
+- `mc tail`
+    - Prints the last 20 lines of `server.log`. Uses `tail`. Similar to `mc watch`, but exits immediately.
 - `mc stop`
     - Stops the server (un!)gracefully. This should eventually send a real "stop" command to the server console, but instead just uses `kill`.
 - `mc kill`
