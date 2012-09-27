@@ -9,7 +9,7 @@
  * All paths should be absolute.
  *
  * @author Dan Hlavenka
- * @version 2012-09-07 22:45 CST
+ * @version 2012-09-27 17:08 CST
  *
  */
 
@@ -35,7 +35,7 @@ opts="" # Extra options to pass to Java
 cd $base_dir
 
 case "$1" in
-    start)
+	start)
 		if [ "`mc status`" = "Running" ]; then
 			echo "ERROR: Already running"
 		else
@@ -67,6 +67,9 @@ case "$1" in
 		;;
 	watch)
 		tail -f $base_dir/server.log
+		;;
+	tail)
+		tail -n 20 $base_dir/server.log
 		;;
 	stop)
 		if [ "`mc status`" = "Running" ]; then
@@ -141,6 +144,7 @@ case "$1" in
 		echo "       mc start : Starts the server"
 		echo "        mc join : Brings the server console to your active window"
 		echo "       mc watch : Monitors the console output without attaching"
+		echo "        mc tail : Displays the last 20 lines of the server log"
 		echo "        mc stop : Stops the server (un!)gracefully"
 		echo "        mc kill : Kills the server immediately"
 		echo "     mc restart : Stops the server gracefully, then restarts"
