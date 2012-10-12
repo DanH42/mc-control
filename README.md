@@ -38,7 +38,7 @@ Configuration
 - `dev_update_url`
     - See `beta_update_url`
 - `s3_bucket`
-    - The name of your Amazon S3 bucket to save backups to when running `mc backup`. It's up to you to configure `s3cmd` properly. If you don't want to sane backups to Amazon S3, leave this blank.
+    - The name of your Amazon S3 bucket to save backups to when running `mc backup`. It's up to you to configure `s3cmd` properly. If you don't want to make backups to Amazon S3, leave this blank.
 - `opts`
     - Extra options to pass to Java, as a plain string.
 
