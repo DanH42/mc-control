@@ -1,66 +1,77 @@
-#! /bin/bash
-
+#!/bin/bash
+# /usr/bin/mc
 : '
 /**
  *
  * Minecraft control script.
- * Suggested name: /usr/bin/mc
  * This script MUST be in your path!
  * All paths should be absolute.
  *
  * @author Dan Hlavenka
- * @version 2012-09-27 17:08 CST
+ * @version 2012-10-11 20:20 CST
  *
  */
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! Requires `detachtty` or `screen` to work at all. !!
-!!     Requires `s3cmd` to back up to Amazon S3     !!
-!!   Requires `gsutil` to back up to Google Cloud   !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    Requires `screen` to work at all.     !!
+!! Requires `s3cmd` to back up to Amazon S3 !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 '
 
-base_dir="/home/dan/mc"
+base_dir="/home/$USER/mc"
 java_path="/java/bin/java"
-minecraft_path="/home/dan/mc/bukkit.jar"
-bg_app="screen" # Either "screen" or "detachtty"
-memory="1G"
+minecraft_path="/home/$USER/mc/bukkit.jar"
+memory="8G"
 update_url="http://cbukk.it/craftbukkit.jar"
 beta_update_url="http://cbukk.it/craftbukkit-beta.jar"
 dev_update_url="http://cbukk.it/craftbukkit-dev.jar"
 s3_bucket="" # Set to "" to bypass S3 backups
-gs_bucket="" # Set to "" to bypass GS backups
-opts="" # Extra options to pass to Java
+opts="-Djava.awt.headless=true" # Extra options to pass to Java
 
 cd $base_dir
 
+start(){
+	if [ "$(status)" = "Running" ]; then
+		echo "ERROR: Already running"
+	else
+		screen -dmS mc mc run
+		while [ "$(status)" != "Running" ]; do
+			[ ] # Wait for Java to start
+		done
+		echo "Server started."
+	fi
+}
+
+stop(){
+	if [ "$(status)" = "Running" ]; then
+		screen -S mc -X eval "stuff 'stop'\015"
+		while [ "$(status)" = "Running" ]; do
+			[ ] # Wait for Java to terminate
+		done
+		echo "Server stopped"
+	else
+		echo "ERROR: Not running"
+	fi
+}
+
+status(){
+	if [ "`pidof -s java`" ]; then
+		echo "Running"
+	else
+		echo "Not running"
+	fi
+}
+
 case "$1" in
 	start)
-		if [ "`mc status`" = "Running" ]; then
-			echo "ERROR: Already running"
-		else
-			echo "Starting server..."
-			if [ $bg_app = "screen" ]; then
-				screen -dmS mc mc run
-			else
-				detachtty $base_dir/mc mc run
-			fi
-			while [ "`mc status`" != "Running" ]; do
-				[ ] # Wait for Java to start
-			done
-			echo "Server started."
-		fi
+		echo $(start)
 		;;
 	run)
 		$java_path -Xmx$memory -Xms$memory $opts -jar $minecraft_path
 		;;
 	join)
-		if [ "`mc status`" = "Running" ]; then
-			if [ $bg_app = "screen" ]; then
-				screen -dr mc
-			else
-				attachtty $base_dir/mc
-			fi
+		if [ "$(status)" = "Running" ]; then
+			screen -dr mc
 		else
 			echo "ERROR: Not running"
 		fi
@@ -72,22 +83,13 @@ case "$1" in
 		tail -n 20 $base_dir/server.log
 		;;
 	stop)
-		if [ "`mc status`" = "Running" ]; then
-			echo "Stopping server..."
-			kill `pidof java` # Not as graceful as it should be
-			while [ "`mc status`" = "Running" ]; do
-				[ ] # Wait for Java to terminate
-			done
-			echo "Server stopped"
-		else
-			echo "ERROR: Not running"
-		fi
+		echo $(stop)
 		;;
 	kill)
-		if [ "`mc status`" = "Running" ]; then
+		if [ "$(status)" = "Running" ]; then
 			echo "Killing server..."
 			kill -9 `pidof java`
-			while [ "`mc status`" = "Running" ]; do
+			while [ "$(status)" = "Running" ]; do
 				[ ] # Wait for Java to terminate
 			done
 			echo "Server stopped"
@@ -96,14 +98,19 @@ case "$1" in
 		fi
 		;;
 	restart)
-		if [ "`mc status`" = "Running" ]; then
-			mc stop
+		if [ "$(status)" = "Running" ]; then
+			$(stop)
 		fi
-		mc start
+		$(start)
 		;;
 	backup)
+		screen -S mc -X eval "stuff 'broadcast Starting backup...'\015"
+		screen -S mc -X eval "stuff 'save-off'\015"
+		screen -S mc -X eval "stuff 'save-all'\015"
 		archive=$base_dir/backups/`date "+%Y-%m-%d-%H-%M"`.zip
 		zip -q $archive -r world
+		screen -S mc -X eval "stuff 'save-on'\015"
+		screen -S mc -X eval "stuff 'broadcast Backup complete!'\015"
 		if [ $s3_bucket ]; then
 			s3cmd put --add-header=x-amz-storage-class:REDUCED_REDUNDANCY $archive s3://$s3_bucket/backups/
 		fi
@@ -126,26 +133,22 @@ case "$1" in
 				;;
 		esac
 		chmod +x $minecraft_path
-		if [ "`mc status`" = "Running" ]; then
-			mc restart
+		if [ "$(status)" = "Running" ]; then
+			$(restart)
 		fi
 		echo "Update complete"
 		;;
 	status)
-		if [ "`pidof -s java`" ]; then
-			echo "Running"
-		else
-			echo "Not running"
-		fi
+		echo $(status)
 		;;
 	*)
-		echo "Status:" `mc status`
+		echo "Status:" $(status)
 		echo "Options:"
 		echo "       mc start : Starts the server"
 		echo "        mc join : Brings the server console to your active window"
 		echo "       mc watch : Monitors the console output without attaching"
 		echo "        mc tail : Displays the last 20 lines of the server log"
-		echo "        mc stop : Stops the server (un!)gracefully"
+		echo "        mc stop : Stops the server gracefully"
 		echo "        mc kill : Kills the server immediately"
 		echo "     mc restart : Stops the server gracefully, then restarts"
 		echo "      mc update : Updates to the latest Recommended build"
