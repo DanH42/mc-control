@@ -8,7 +8,7 @@
  * All paths should be absolute.
  *
  * @author Dan Hlavenka
- * @version 2012-10-11 20:20 CST
+ * @version 2012-12-18 01:22 CST
  *
  */
 
@@ -18,9 +18,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 '
 
-base_dir="/home/$USER/mc"
+base_dir="/home/dan/mc"
 java_path="/java/bin/java"
-minecraft_path="/home/$USER/mc/bukkit.jar"
+minecraft_path="/home/dan/mc/bukkit.jar"
 memory="8G"
 update_url="http://cbukk.it/craftbukkit.jar"
 beta_update_url="http://cbukk.it/craftbukkit-beta.jar"
@@ -62,6 +62,13 @@ status(){
 	fi
 }
 
+restart(){
+	if [ "$(status)" = "Running" ]; then
+		echo $(stop)
+	fi
+	echo $(start)
+}
+
 case "$1" in
 	start)
 		echo $(start)
@@ -80,7 +87,11 @@ case "$1" in
 		tail -f $base_dir/server.log
 		;;
 	tail)
-		tail -n 20 $base_dir/server.log
+		lines=20
+		if [ "$2" ]; then
+			lines="$2"
+		fi
+		tail -n $lines $base_dir/server.log
 		;;
 	stop)
 		echo $(stop)
@@ -98,10 +109,7 @@ case "$1" in
 		fi
 		;;
 	restart)
-		if [ "$(status)" = "Running" ]; then
-			$(stop)
-		fi
-		$(start)
+		echo $(restart)
 		;;
 	backup)
 		screen -S mc -X eval "stuff 'broadcast Starting backup...'\015"
@@ -113,9 +121,6 @@ case "$1" in
 		screen -S mc -X eval "stuff 'broadcast Backup complete!'\015"
 		if [ $s3_bucket ]; then
 			s3cmd put --add-header=x-amz-storage-class:REDUCED_REDUNDANCY $archive s3://$s3_bucket/backups/
-		fi
-		if [ $gs_bucket ]; then
-			gsutil cp -a public-read $archive gs://$gs_bucket/backups/
 		fi
 		echo "Backup complete"
 		;;
@@ -134,7 +139,7 @@ case "$1" in
 		esac
 		chmod +x $minecraft_path
 		if [ "$(status)" = "Running" ]; then
-			$(restart)
+			echo $(restart)
 		fi
 		echo "Update complete"
 		;;
@@ -147,7 +152,7 @@ case "$1" in
 		echo "       mc start : Starts the server"
 		echo "        mc join : Brings the server console to your active window"
 		echo "       mc watch : Monitors the console output without attaching"
-		echo "        mc tail : Displays the last 20 lines of the server log"
+		echo "   mc tail n=20 : Displays the last n lines of the server log"
 		echo "        mc stop : Stops the server gracefully"
 		echo "        mc kill : Kills the server immediately"
 		echo "     mc restart : Stops the server gracefully, then restarts"
@@ -155,6 +160,6 @@ case "$1" in
 		echo " mc update beta : Updates to the latest Beta build"
 		echo "  mc update dev : Updates to the latest Development build"
 		echo "      mc backup : Saves a copy of the world to ~/backups"
-		echo "      mc status : Returns the server status ('running' / 'not running')"
+		echo "      mc status : Returns the server status (running / not running)"
 		;;
 esac
