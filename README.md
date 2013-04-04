@@ -39,6 +39,8 @@ Configuration
     - See `beta_update_url`
 - `s3_bucket`
     - The name of your Amazon S3 bucket to save backups to when running `mc backup`. It's up to you to configure `s3cmd` properly. If you don't want to make backups to Amazon S3, leave this blank.
+- `s3_reduced_redundancy`
+    - (boolean) Set to true to use the "reduced redundancy" storage class on Amazon S3. This costs less money.
 - `opts`
     - Extra options to pass to Java, as a plain string.
 
@@ -69,7 +71,7 @@ Commands
 - `mc update dev`
     - Updates to the latest Development build
 - `mc backup`
-    - Zips a copy of your world directory, and saves it to $base_dir/backups. Runs an S3 or GS backup if set up.
+    - Zips a copy of your world directory, and saves it to $base_dir/backups. Uploads to Amazon S3 if set up.
 - `mc status`
     - Returns the server's status (either "running" or "not running")
 
