@@ -19,14 +19,15 @@
 '
 
 base_dir="/home/dan/mc"
-java_path="/java/bin/java"
+java_path="/usr/bin/java"
 minecraft_path="/home/dan/mc/bukkit.jar"
 memory="8G"
 update_url="http://cbukk.it/craftbukkit.jar"
 beta_update_url="http://cbukk.it/craftbukkit-beta.jar"
 dev_update_url="http://cbukk.it/craftbukkit-dev.jar"
 s3_bucket="" # Set to "" to bypass S3 backups
-opts="-Djava.awt.headless=true" # Extra options to pass to Java
+s3_reduced_redundancy=true
+opts="-server -Djava.awt.headless=true" # Extra options to pass to Java
 
 cd $base_dir
 
@@ -74,7 +75,7 @@ case "$1" in
 		echo $(start)
 		;;
 	run)
-		$java_path -Xmx$memory -Xms$memory $opts -jar $minecraft_path
+		$java_path -Xmx$memory -Xms512M $opts -jar $minecraft_path
 		;;
 	join)
 		if [ "$(status)" = "Running" ]; then
@@ -118,10 +119,14 @@ case "$1" in
 		archive=$base_dir/backups/`date "+%Y-%m-%d-%H-%M"`.zip
 		zip -q $archive -r world
 		screen -S mc -X eval "stuff 'save-on'\015"
-		screen -S mc -X eval "stuff 'broadcast Backup complete!'\015"
 		if [ $s3_bucket ]; then
-			s3cmd put --add-header=x-amz-storage-class:REDUCED_REDUNDANCY $archive s3://$s3_bucket/backups/
+			header=""
+			if [ $s3_reduced_redundancy == true ]; then
+				header="--add-header=x-amz-storage-class:REDUCED_REDUNDANCY"
+			fi
+			s3cmd put $header $archive s3://$s3_bucket/backups/
 		fi
+		screen -S mc -X eval "stuff 'broadcast Backup complete!'\015"
 		echo "Backup complete"
 		;;
 	update)
@@ -159,7 +164,7 @@ case "$1" in
 		echo "      mc update : Updates to the latest Recommended build"
 		echo " mc update beta : Updates to the latest Beta build"
 		echo "  mc update dev : Updates to the latest Development build"
-		echo "      mc backup : Saves a copy of the world to ~/backups"
+		echo "      mc backup : Saves a copy of the world to $base_dir/backups"
 		echo "      mc status : Returns the server status (running / not running)"
 		;;
 esac
