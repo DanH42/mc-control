@@ -100,7 +100,7 @@ case "$1" in
 	kill)
 		if [ "$(status)" = "Running" ]; then
 			echo "Killing server..."
-			kill -9 `pidof java`
+			screen -X -S mc quit
 			while [ "$(status)" = "Running" ]; do
 				[ ] # Wait for Java to terminate
 			done
