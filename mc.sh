@@ -56,7 +56,7 @@ stop(){
 }
 
 status(){
-	if [ "`pidof -s java`" ]; then
+	if screen -list | grep -q "mc"; then
 		echo "Running"
 	else
 		echo "Not running"
